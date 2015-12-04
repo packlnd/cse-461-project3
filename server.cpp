@@ -32,6 +32,13 @@ void accept_client(int sd) {
     int c_sd = accept(sd, c->address(), c->address_length());
     c->set_sd(c_sd);
     clients.push_back(c);
+
+    ///////////////////////////////////7
+    char msg[1024];
+    memset(msg, 0, 1024);
+    read(c_sd, msg, 1024);
+    printf("%s\n", msg);
+    write(c_sd, "Server reply\n", 13);
 }
 
 void listen_for_clients(int sd) {
