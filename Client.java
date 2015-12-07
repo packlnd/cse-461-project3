@@ -1,13 +1,71 @@
 import java.net.*;
 import java.io.*;
+import java.util.Vector;
+
+import javax.media.*;
+import javax.media.format.*;
+import javax.media.protocol.*;
+
+import java.awt.*;
 
 public class Client {
+    // "server"
     final String host = "localhost";
     final int port = 1234;
+    //private static String PORT = "10000";
+    //private static InetAddress addr;
+    static final Format[] FORMATS = { new VideoFormat("rgb") };
+    static final ContentDescriptor CONTENT_DESCRIPTOR = new ContentDescriptor("raw.rtp");
+
+    // "client"
+    Player player = null;
+    private MediaLocator mediaLocator;
+    //private static String PORT = "10000";
+    //private static InetAddress addr;
 
     public Client() {
         String response = communicateWithServer();
-        // SETUP UDP
+        if (isMaster(response)) {
+            fakeServer();
+        } else {
+            fakeClient();
+        }
+    }
+
+    private void fakeServer() {
+        try {
+            CaptureDeviceInfo wcI = (CaptureDeviceInfo)CaptureDeviceManager.getDeviceList(null).get(0);
+            DataSource source = Manager.createDataSource(wcI.getLocator());
+            Format outputFormat[] = new Format[2];
+            outputFormat[0] = new VideoFormat(VideoFormat.INDEO50);
+            outputFormat[1] = new AudioFormat(AudioFormat.GSM_MS /* LINEAR */);
+            Processor mediaProcessor = Manager.createRealizedProcessor(
+                    new ProcessorModel(source, outputFormat, CONTENT_DESCRIPTOR));
+            MediaLocator outputMediaLocator = new MediaLocator("rtp://localhost:20001/video");
+            DataSink dataSink = Manager.createDataSink(mediaProcessor.getDataOutput(), outputMediaLocator);
+
+            System.out.println(mediaProcessor);
+            mediaProcessor.start();
+            dataSink.open();
+            dataSink.start();
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void fakeClient() {
+        mediaLocator = new MediaLocator("rtp://localhost:20001/video");
+        //setLayout(new BorderLayout());
+        try {
+            player = Manager.createPlayer(mediaLocator);
+            player.start();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private boolean isMaster(String s) {
+        return !s.equals("$");
     }
 
     private String communicateWithServer() {

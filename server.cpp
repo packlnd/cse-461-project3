@@ -53,7 +53,7 @@ void pair_up(int i1, int i2) {
     std::cout << c1.get()->get_address_string() <<
         " <---> " << c2.get()->get_address_string() << std::endl;
     send_to_client(c1, c2.get()->get_address_string());
-    send_to_client(c2, c1.get()->get_address_string());
+    send_to_client(c2, "$");//c1.get()->get_address_string());
     clients.erase(clients.begin()+std::max(i1,i2));
     clients.erase(clients.begin()+std::min(i1,i2));
 }
