@@ -34,11 +34,14 @@ public class Client {
 
     private void fakeServer() {
         try {
-            CaptureDeviceInfo wcI = (CaptureDeviceInfo)CaptureDeviceManager.getDeviceList(null).get(0);
+            Vector list = CaptureDeviceManager.getDeviceList(null);
+            for (Object cdi : list)
+                System.out.println(((CaptureDeviceInfo)cdi).getName());
+            CaptureDeviceInfo wcI = (CaptureDeviceInfo)list.get(0);
+            System.out.println(wcI.getName());
             DataSource source = Manager.createDataSource(wcI.getLocator());
             Format outputFormat[] = new Format[2];
-            outputFormat[0] = new VideoFormat(VideoFormat.INDEO50);
-            outputFormat[1] = new AudioFormat(AudioFormat.GSM_MS /* LINEAR */);
+            outputFormat[0] = new VideoFormat(VideoFormat.H263_RTP);
             Processor mediaProcessor = Manager.createRealizedProcessor(
                     new ProcessorModel(source, outputFormat, CONTENT_DESCRIPTOR));
             MediaLocator outputMediaLocator = new MediaLocator("rtp://localhost:20001/video");
