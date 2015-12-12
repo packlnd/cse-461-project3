@@ -20,6 +20,8 @@ public class Client {
 	public Client() {
 		String response = communicateWithServer();
 		try {
+			//TODO: Client's should act the same. No need for fake server. Problem is localhost with only one camera.
+			// ALso get address to peer from response.
 			if (isMaster(response)) {
 				fakeServer();
 			} else {
@@ -32,8 +34,12 @@ public class Client {
 
 	private void fakeClient() throws Exception {
 		DatagramSocket ds = new DatagramSocket(3000);
+		
+		//TODO: 25000 is large. Don't think we want 25k bytes per packet.
 		byte[] buf = new byte[25000];
 		DatagramPacket dp = new DatagramPacket(buf, 25000);
+		
+		//TODO: Loop receive
 		ds.receive(dp);
 		InputStream in = new ByteArrayInputStream(dp.getData());
 		BufferedImage img = ImageIO.read(in);
@@ -62,6 +68,7 @@ public class Client {
 		window.pack();
 		window.setVisible(true);
 
+		//TODO: Loop, compress
 		BufferedImage img = webcam.getImage();
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ImageIO.write(img, "jpg", baos);
