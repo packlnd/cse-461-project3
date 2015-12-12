@@ -1,4 +1,3 @@
-import java.awt.FlowLayout;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
@@ -10,65 +9,70 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import com.github.sarxos.webcam.Webcam;
+import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 
 public class Client {
 	public static void main(String[] args) {
-
 		new Client();
 	}
 
 	public Client() {
 		String response = communicateWithServer();
-		if (isMaster(response)) {
-			fakeServer();
-		} else {
-			fakeClient();
-		}
-	}
-
-	private void fakeClient() {
-		System.out.println("fakeClient");
-		byte[] buf = new byte[1000];
-		DatagramPacket dp = new DatagramPacket(buf, buf.length);
 		try {
-			while (true) {
-				DatagramSocket s = new DatagramSocket();
-				s.receive(dp);
-				System.out.println("Here");
-				BufferedImage img = ImageIO.read(new ByteArrayInputStream(dp.getData()));
-				JFrame window = new JFrame("fakeClient");
-				window.getContentPane().add(new JLabel(new ImageIcon(img)));
-				window.setResizable(true);
-				window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-				window.pack();
-				window.setVisible(true);
+			if (isMaster(response)) {
+				fakeServer();
+			} else {
+				fakeClient();
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		System.out.println("done");
 	}
 
-	private void fakeServer() {
-		System.out.println("fakeServer");
+	private void fakeClient() throws Exception {
+		DatagramSocket ds = new DatagramSocket(3000);
+		byte[] buf = new byte[25000];
+		DatagramPacket dp = new DatagramPacket(buf, 25000);
+		ds.receive(dp);
+		InputStream in = new ByteArrayInputStream(dp.getData());
+		BufferedImage img = ImageIO.read(in);
+		JFrame frame = new JFrame();
+		frame.getContentPane().add(new JLabel(new ImageIcon(img)));
+		frame.pack();
+		frame.setVisible(true);
+		ds.close();
+	}
+
+	private void fakeServer() throws Exception {
+
 		Webcam webcam = Webcam.getDefault();
 		webcam.setViewSize(WebcamResolution.VGA.getSize());
 
-		try {
-			DatagramSocket s = new DatagramSocket();
-			InetAddress hostAddress = InetAddress.getByName("localhost");
-			while (true) {
-				BufferedImage img = webcam.getImage();
-				ByteArrayOutputStream baos = new ByteArrayOutputStream();
-				byte[] bytes = baos.toByteArray();
-				DatagramPacket out = new DatagramPacket(bytes, bytes.length, hostAddress, 9999);
-				s.send(out);
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		System.out.println("done");
+		WebcamPanel panel = new WebcamPanel(webcam);
+		panel.setFPSDisplayed(true);
+		panel.setDisplayDebugInfo(true);
+		panel.setImageSizeDisplayed(true);
+		panel.setMirrored(true);
+
+		JFrame window = new JFrame("Test webcam panel");
+		window.add(panel);
+		window.setResizable(true);
+		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.pack();
+		window.setVisible(true);
+
+		BufferedImage img = webcam.getImage();
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		ImageIO.write(img, "jpg", baos);
+		byte[] bytes = baos.toByteArray();
+		DatagramSocket ds;
+		InetAddress ip = InetAddress.getByName("localhost");
+		ds = new DatagramSocket();
+		System.out.println(bytes.length);
+		DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip, 3000);
+		ds.send(dp);
+		ds.close();
 	}
 
 	private boolean isMaster(String s) {
@@ -89,4 +93,5 @@ public class Client {
 		}
 		return response;
 	}
+
 }
