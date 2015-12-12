@@ -10,11 +10,11 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 
 import com.github.sarxos.webcam.Webcam;
-import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 
 public class Client {
 	public static void main(String[] args) {
+
 		new Client();
 	}
 
@@ -89,5 +89,4 @@ public class Client {
 		}
 		return response;
 	}
-
 }
