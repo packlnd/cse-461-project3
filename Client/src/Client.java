@@ -29,6 +29,7 @@ public class Client {
 		buildGUI();
 		//String response = communicateWithServer();
 		//TODO: Get host name from response
+		//TODO: https://en.wikipedia.org/wiki/UDP_hole_punching
 		if (cameraAvailable())
 			sendFrames();
 		getFrames();
