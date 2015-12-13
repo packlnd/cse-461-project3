@@ -27,7 +27,10 @@ public class Client {
 	public Client() {
 		initializeWebcam();
 		buildGUI();
-		sendFrames();
+		//String response = communicateWithServer();
+		//TODO: Get host name from response
+		if (cameraAvailable())
+			sendFrames();
 		getFrames();
 	}
 
@@ -47,6 +50,7 @@ public class Client {
 						DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip, 3000);
 						ds.send(dp);
 						ds.close();
+						Thread.sleep(500);
 					} catch (Exception e) {
 					}
 				}
@@ -66,8 +70,7 @@ public class Client {
 						ds.receive(dp);
 						InputStream in = new ByteArrayInputStream(dp.getData());
 						BufferedImage img = ImageIO.read(in);
-						JFrame frame = new JFrame();
-						frame.getContentPane().add(new JLabel(new ImageIcon(img)));
+						remoteCam = new JLabel(new ImageIcon(img));
 					} catch (Exception e) {
 					}
 				}
@@ -82,10 +85,12 @@ public class Client {
 	}
 
 	private void buildGUI() {
-		// TODO: Is webcamera already in use? Two clients on same host
-		WebcamPanel panel = new WebcamPanel(webcam, true);
+		WebcamPanel panel = new WebcamPanel(webcam, cameraAvailable());
 		panel.setSize(new Dimension(250, 500));
-		remoteCam = new JLabel(new ImageIcon(webcam.getImage()));
+		if (cameraAvailable())
+			remoteCam = new JLabel(new ImageIcon(webcam.getImage()));
+		else
+			remoteCam = new JLabel(new ImageIcon());
 		remoteCam.setPreferredSize(new Dimension(250, 500));
 		remoteCam.setMinimumSize(new Dimension(250, 500));
 		remoteCam.setMaximumSize(new Dimension(250, 500));
@@ -100,40 +105,9 @@ public class Client {
 		window.pack();
 		window.setVisible(true);
 	}
-
-	/*
-	 * private void fakeClient() throws Exception { DatagramSocket ds = new
-	 * DatagramSocket(3000);
-	 * 
-	 * //TODO: 25000 is large. Don't think we want 25k bytes per packet. byte[]
-	 * buf = new byte[25000]; DatagramPacket dp = new DatagramPacket(buf,
-	 * 25000);
-	 * 
-	 * //TODO: Loop receive ds.receive(dp); InputStream in = new
-	 * ByteArrayInputStream(dp.getData()); BufferedImage img = ImageIO.read(in);
-	 * JFrame frame = new JFrame(); frame.getContentPane().add(new JLabel(new
-	 * ImageIcon(img))); frame.pack(); frame.setVisible(true); ds.close(); }
-	 * 
-	 * private void fakeServer() throws Exception { WebcamPanel panel = new
-	 * WebcamPanel(webcam); panel.setFPSDisplayed(true);
-	 * panel.setDisplayDebugInfo(true); panel.setImageSizeDisplayed(true);
-	 * panel.setMirrored(true);
-	 * 
-	 * JFrame window = new JFrame("Test webcam panel"); window.add(panel);
-	 * window.setResizable(true);
-	 * window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); window.pack();
-	 * window.setVisible(true);
-	 * 
-	 * //TODO: Loop, compress BufferedImage img = webcam.getImage();
-	 * ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	 * ImageIO.write(img, "jpg", baos); byte[] bytes = baos.toByteArray();
-	 * DatagramSocket ds; InetAddress ip = InetAddress.getByName("localhost");
-	 * ds = new DatagramSocket(); System.out.println(bytes.length);
-	 * DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip, 3000);
-	 * ds.send(dp); ds.close(); }
-	 */
-	private boolean isMaster(String s) {
-		return !s.equals("$");
+	
+	private boolean cameraAvailable() {
+		return !webcam.getLock().isLocked();
 	}
 
 	private String communicateWithServer() {
@@ -150,5 +124,4 @@ public class Client {
 		}
 		return response;
 	}
-
 }
