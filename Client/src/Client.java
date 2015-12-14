@@ -15,7 +15,7 @@ import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 
-public class Client {
+public class Client extends JLabel {
 
 	private Webcam webcam;
 	private JLabel remoteCam;
@@ -25,17 +25,18 @@ public class Client {
 	}
 
 	public Client() {
+		super();
 		initializeWebcam();
 		buildGUI();
 		String response = communicateWithServer();
 		//TODO: Get host name from response
 		//TODO: https://en.wikipedia.org/wiki/UDP_hole_punching
 		if (cameraAvailable())
-			sendFrames();
-		getFrames();
+			sendWebcamFrames();
+		getWebcamFrames();
 	}
 
-	private void sendFrames() {
+	private void sendWebcamFrames() {
 		Thread t = new Thread() {
 			public void run() {
 				while (true) {
@@ -60,7 +61,7 @@ public class Client {
 		t.start();
 	}
 
-	private void getFrames() {
+	private void getWebcamFrames() {
 		Thread t = new Thread() {
 			public void run() {
 				while (true) {
@@ -97,14 +98,9 @@ public class Client {
 		remoteCam.setMaximumSize(new Dimension(250, 500));
 		remoteCam.setBackground(Color.BLACK);
 
-		JFrame window = new JFrame("Test webcam panel");
-		window.setPreferredSize(new Dimension(500, 500));
-		window.add(panel);
-		window.add(remoteCam);
-		window.setResizable(true);
-		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		window.pack();
-		window.setVisible(true);
+		this.setPreferredSize(new Dimension(500, 500));
+		this.add(panel);
+		this.add(remoteCam);
 	}
 	
 	private boolean cameraAvailable() {
