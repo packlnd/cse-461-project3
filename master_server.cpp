@@ -50,14 +50,28 @@ void send_to_connection(Connection c, std::string s) {
     write(c.get()->get_sd(), msg, len);
 }
 
+Connection get_min_relay() {
+    int bestIndex=0;
+    int lowestCount=0;
+    for (unsigned int i=0; i<relay_servers.size(); ++i) {
+        if (relay_servers[i].second < lowestCount) {
+            lowestCount = relay_servers[i].second;
+            bestIndex=i;
+        }
+    }
+    ++relay_servers[bestIndex].second;
+    return relay_servers[bestIndex].first;
+}
+
 void pair_up(int i1, int i2) {
     Connection c1 = clients[i1];
     Connection c2 = clients[i2];
-    std::cout << c1.get()->get_address_string() <<
-        " <---> " << c2.get()->get_address_string() << std::endl;
-    //TODO: Send relay info.
-    //send_to_connection(c1, c2.get()->get_address_string());
-    //send_to_connection(c2, "$");//c1.get()->get_address_string());
+    Connection c = get_min_relay();
+    std::string msg = c.get()->get_address_string() + ":" + std::to_string(pair_number++);
+    std::cout << c1.get()->get_address_string() << " <-- " << msg << " --> " <<
+        c2.get()->get_address_string() << std::endl;
+    send_to_connection(c1, msg);
+    send_to_connection(c2, msg);
     clients.erase(clients.begin()+std::max(i1,i2));
     clients.erase(clients.begin()+std::min(i1,i2));
 }
@@ -79,6 +93,8 @@ void update_count_from_relay(std::pair<Connection, int> &r) {
     const int size = 1024;
     char response[size];
     read(r.first.get()->get_sd(), response, size);
+    std::cout << "count for " << r.first.get()->get_address_string() <<
+        " " << r.second << " --> " << atoi(response) << std::endl;
     r.second = atoi(response);
 }
 
