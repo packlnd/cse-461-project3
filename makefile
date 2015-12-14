@@ -1,4 +1,4 @@
 all: server
 
-server: server.cpp
-	g++ -std=c++11 -Wall -pedantic -o server ConnectionInfo.cpp server.cpp
+server: master_server.cpp
+	g++ -std=c++11 -Wall -pedantic -o server ConnectionInfo.cpp master_server.cpp

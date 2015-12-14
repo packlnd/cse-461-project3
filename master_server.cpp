@@ -3,6 +3,8 @@
 #include <sstream>
 #include <vector>
 #include <memory>
+#include <functional>
+#include <queue>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -18,29 +20,30 @@
 
 #include "./ConnectionInfo.hpp"
 
-#define PORT 1234
-
 typedef std::shared_ptr<ConnectionInfo> Connection;
+typedef std::vector<std::pair<Connection, int>> RelayList;
 
 std::vector<Connection> clients;
+RelayList relay_servers;
+long pair_number = 0;
 
 void handle_error(std::string msg) {
     std::cerr << msg << std::endl;
     exit(1);
 }
 
-void accept_client(int sd) {
+Connection accept_connection(int sd) {
     Connection c(new ConnectionInfo());
     int c_sd = accept(sd, c->address(), c->address_length());
     c->set_sd(c_sd);
-    clients.push_back(c);
+    return c;
 }
 
 bool can_match() {
     return clients.size() >= 2;
 }
 
-void send_to_client(Connection c, std::string s) {
+void send_to_connection(Connection c, std::string s) {
     s.append("\n");
     const char *msg = s.c_str();
     int len = strlen(msg);
@@ -52,8 +55,9 @@ void pair_up(int i1, int i2) {
     Connection c2 = clients[i2];
     std::cout << c1.get()->get_address_string() <<
         " <---> " << c2.get()->get_address_string() << std::endl;
-    send_to_client(c1, c2.get()->get_address_string());
-    send_to_client(c2, "$");//c1.get()->get_address_string());
+    //TODO: Send relay info.
+    //send_to_connection(c1, c2.get()->get_address_string());
+    //send_to_connection(c2, "$");//c1.get()->get_address_string());
     clients.erase(clients.begin()+std::max(i1,i2));
     clients.erase(clients.begin()+std::min(i1,i2));
 }
@@ -66,27 +70,52 @@ void naive_matching_algorithm() {
 void listen_for_clients(int sd) {
     while (1) {
         std::cout << "Number of clients: " << clients.size() << std::endl;
-        accept_client(sd);
-        if (can_match())
-            naive_matching_algorithm();
+        clients.push_back(accept_connection(sd));
+        if (can_match()) naive_matching_algorithm();
     }
 }
 
-int create_socket() {
-    ConnectionInfo port(PORT);
+void update_count_from_relay(std::pair<Connection, int> &r) {
+    const int size = 1024;
+    char response[size];
+    read(r.first.get()->get_sd(), response, size);
+    r.second = atoi(response);
+}
+
+void poll_relays() {
+    if (fork() != 0) return;
+    while (true) {
+        for (auto r : relay_servers) {
+            send_to_connection(r.first, "$$");
+            update_count_from_relay(r);
+        }
+    }
+}
+
+void listen_for_relays(int sd) {
+    if (fork() != 0) return;
+    while (1) {
+        std::cout << "Number of relays: " << relay_servers.size() << std::endl;
+        relay_servers.push_back({accept_connection(sd), 0});
+    }
+}
+
+int create_socket(int port_no) {
+    ConnectionInfo port(port_no);
     int sd = socket(AF_INET, SOCK_STREAM, 0);
     if (sd < 0)
         handle_error("Couldn't create socket");
     if (bind(sd, port.address(), *port.address_length()) < 0)
         handle_error("Couldn't bind socket");
-    std::cout << "Listening for connections on port " << PORT << std::endl;
+    std::cout << "Listening for connections on port " << port_no << std::endl;
     if (listen(sd, 0) != 0)
         handle_error("Listen");
     return sd;
 }
 
 int main(int argc, char **argv) {
-    int sd = create_socket();
-    listen_for_clients(sd);
+    listen_for_relays(create_socket(1234));
+    poll_relays();
+    listen_for_clients(create_socket(1235));
     return 0;
 }

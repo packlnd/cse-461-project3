@@ -27,7 +27,7 @@ public class Client {
 	public Client() {
 		initializeWebcam();
 		buildGUI();
-		//String response = communicateWithServer();
+		String response = communicateWithServer();
 		//TODO: Get host name from response
 		//TODO: https://en.wikipedia.org/wiki/UDP_hole_punching
 		if (cameraAvailable())
@@ -71,7 +71,7 @@ public class Client {
 						ds.receive(dp);
 						InputStream in = new ByteArrayInputStream(dp.getData());
 						BufferedImage img = ImageIO.read(in);
-						remoteCam = new JLabel(new ImageIcon(img));
+						remoteCam.setIcon(new ImageIcon(img));
 					} catch (Exception e) {
 					}
 				}
@@ -112,7 +112,7 @@ public class Client {
 	}
 
 	private String communicateWithServer() {
-		final String host = "localhost";
+		final String host = "attu1.cs.washington.edu";
 		final int port = 1234;
 		String response = null;
 		try {
