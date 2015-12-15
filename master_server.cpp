@@ -67,7 +67,7 @@ void pair_up(int i1, int i2) {
     Connection c1 = clients[i1];
     Connection c2 = clients[i2];
     Connection c = get_min_relay();
-    std::string msg = c.get()->get_address_string() + ":" + std::to_string(pair_number++);
+    std::string msg = c.get()->get_ip() + "$" + std::to_string(pair_number++);
     std::cout << c1.get()->get_address_string() << " <-- " << msg << " --> " <<
         c2.get()->get_address_string() << std::endl;
     send_to_connection(c1, msg);
@@ -102,7 +102,7 @@ void poll_relays() {
     if (fork() != 0) return;
     while (true) {
         for (auto r : relay_servers) {
-            send_to_connection(r.first, "$$");
+            send_to_connection(r.first, "1");
             update_count_from_relay(r);
         }
     }

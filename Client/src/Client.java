@@ -10,6 +10,7 @@ import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 
 import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
@@ -19,7 +20,7 @@ public class Client extends JLabel {
 
 	private Webcam webcam;
 	private JLabel remoteCam;
-
+	
 	public static void main(String[] args) {
 		new Client();
 	}
@@ -28,30 +29,41 @@ public class Client extends JLabel {
 		super();
 		initializeWebcam();
 		buildGUI();
-		String response = communicateWithServer();
-		//TODO: Get host name from response
-		//TODO: https://en.wikipedia.org/wiki/UDP_hole_punching
+		String response = communicateWithMasterServer();
+		Socket relay = setupConnectionWithRelay(response);
 		if (cameraAvailable())
-			sendWebcamFrames();
-		getWebcamFrames();
+			sendWebcamFrames(relay);
+		getWebcamFrames(relay);
 	}
 
-	private void sendWebcamFrames() {
+	private Socket setupConnectionWithRelay(String response) {
+		String[] s = response.split("$");
+		Socket socket = null;
+		try {
+			socket = new Socket(s[0], 1236);
+			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+			bw.write(s[1]);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return socket;
+	}
+	
+	private void sendWebcamFrames(Socket relay) {
 		Thread t = new Thread() {
 			public void run() {
 				while (true) {
 					try {
+						OutputStream os = relay.getOutputStream();
 						BufferedImage img = webcam.getImage();
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
-						DatagramSocket ds;
-						InetAddress ip = InetAddress.getByName("localhost");
-						ds = new DatagramSocket();
-						System.out.println(bytes.length);
-						DatagramPacket dp = new DatagramPacket(bytes, bytes.length, ip, 3000);
-						ds.send(dp);
-						ds.close();
+						os.write(bytes.length);
+						os.write('\n');
+						os.write(bytes);
+						os.write('\n');
+						
 						Thread.sleep(500);
 					} catch (Exception e) {
 					}
@@ -61,18 +73,16 @@ public class Client extends JLabel {
 		t.start();
 	}
 
-	private void getWebcamFrames() {
+	private void getWebcamFrames(Socket relay) {
 		Thread t = new Thread() {
 			public void run() {
 				while (true) {
 					try {
-						DatagramSocket ds = new DatagramSocket(3000);
-						byte[] buf = new byte[25000];
-						DatagramPacket dp = new DatagramPacket(buf, 25000);
-						ds.receive(dp);
-						InputStream in = new ByteArrayInputStream(dp.getData());
+						BufferedReader bsr = new BufferedReader(new InputStreamReader(relay.getInputStream()));
+						System.out.println(bsr.readLine());
+						/*InputStream in = new ByteArrayInputStream(dp.getData());
 						BufferedImage img = ImageIO.read(in);
-						remoteCam.setIcon(new ImageIcon(img));
+						remoteCam.setIcon(new ImageIcon(img));*/
 					} catch (Exception e) {
 					}
 				}
@@ -107,15 +117,18 @@ public class Client extends JLabel {
 		return !webcam.getLock().isLocked();
 	}
 
-	private String communicateWithServer() {
+	private String communicateWithMasterServer() {
 		final String host = "attu1.cs.washington.edu";
-		final int port = 1234;
+		final int port = 1235;
 		String response = null;
 		try {
 			Socket serverSocket = new Socket(host, port);
 			BufferedReader fromServer = new BufferedReader(new InputStreamReader(serverSocket.getInputStream()));
 			response = fromServer.readLine();
 			serverSocket.close();
+		} catch (ConnectException ce) {
+			JOptionPane.showMessageDialog(null, "Cannot connect to " + host + " on " + port);
+			System.exit(0);
 		} catch (IOException ie) {
 			ie.printStackTrace();
 		}
