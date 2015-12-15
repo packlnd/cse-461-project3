@@ -27,10 +27,11 @@ public class Client {
 
 	public Client() {
 		initializeWebcam();
-		buildGUI();
+		boolean cam = cameraAvailable();
+		buildGUI(cam);
 		String response = communicateWithMasterServer();
 		Socket relay = setupConnectionWithRelay(response);
-		if (cameraAvailable())
+		if (cam)
 			sendWebcamFrames(relay);
 		getWebcamFrames(relay);
 	}
@@ -80,10 +81,11 @@ public class Client {
 						int len = dis.readInt();
 						dis.readByte();
 					    ByteBuffer bbuf = ByteBuffer.allocate(len);
-					    
-						/*InputStream in = new ByteArrayInputStream(dp.getData());
+					    for (int i=0; i<len; ++i)
+					    	bbuf.put(dis.readByte());
+						InputStream in = new ByteArrayInputStream(bbuf.array());
 						BufferedImage img = ImageIO.read(in);
-						remoteCam.setIcon(new ImageIcon(img));*/
+						remoteCam.setIcon(new ImageIcon(img));
 					} catch (Exception e) {
 					}
 				}
@@ -97,8 +99,8 @@ public class Client {
 		webcam.setViewSize(WebcamResolution.VGA.getSize());
 	}
 
-	private void buildGUI() {
-		WebcamPanel panel = new WebcamPanel(webcam, cameraAvailable());
+	private void buildGUI(boolean cam) {
+		WebcamPanel panel = new WebcamPanel(webcam, cam);
 		panel.setSize(new Dimension(250, 500));
 		if (cameraAvailable())
 			remoteCam = new JLabel(new ImageIcon(webcam.getImage()));
