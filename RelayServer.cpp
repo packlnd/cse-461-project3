@@ -37,17 +37,36 @@ void handle_client(int client_sd) {
   struct pollfd fds[1];
   fds[0].fd = client_sd;
   fds[0].events = POLLIN;
+  char token_buf[4];
   char buf[25000];
   int bytes_read;
-  
+  int token, partner;
+
+  memset(&token_buf, 0, sizeof(token_buf));
+  memset(&buf, 0, sizeof(buf));
+
+  // get the token from client
+  bytes_read = read(client_sd, &token_buf, sizeof(token_buf));
+  token = *((int*)token_buf);
+  std::cout << "Client "<<client_sd<<" with token "<<token<<std::endl;
+  //if (client_pairs.fine(token) != std::npos) {
+  client_pairs[token].push_back(client_sd);
+    //}
+
+  while (client_pairs[token].size() != 2) { }
+
+  for (auto it = client_pairs[token].begin(); it != client_pairs[token].end(); it++) {
+    if (*it != client_sd) partner = *it;
+  }
   do {
-    if (bytes_read > 0) std::cout<<"Waiting for message from client "<<client_sd<<std::endl;
+    std::cout<<"Waiting for message from client "<<client_sd<<std::endl;
     bytes_read = read(client_sd, &buf, sizeof(buf));
     if (bytes_read > 0) {
       std::cout<<"Read "<<bytes_read<<" bytes from client "<<client_sd<<std::endl;
       // process bytes
-      std::cout<<buf<<std::endl;
+      std::cout<<"Writing "<<bytes_read<<" bytes to Client "<<partner<<std::endl;
       // write to opposite end
+      write(partner, &buf, bytes_read);
     }
   } while (poll(fds, 1, 10000) > 0 && bytes_read != 0);
 
