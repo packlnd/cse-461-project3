@@ -21,7 +21,7 @@
 #include "./ConnectionInfo.hpp"
 
 typedef std::shared_ptr<ConnectionInfo> Connection;
-typedef std::vector<std::pair<Connection, int>> RelayList;
+typedef std::vector<std::pair<Connection, int>*> RelayList;
 
 std::vector<Connection> clients;
 RelayList relay_servers;
@@ -57,16 +57,16 @@ Connection get_min_relay() {
     std::cout << "Size: " << relay_servers.size() << std::endl;
     for (unsigned int i=0; i<relay_servers.size(); ++i) {
         std::cout << "Crash next line" << std::endl;
-        if (relay_servers[i].second < lowestCount) {
-            lowestCount = relay_servers[i].second;
+        if (relay_servers[i]->second < lowestCount) {
+            lowestCount = relay_servers[i]->second;
             bestIndex=i;
         }
         std::cout << "Didnt crash previous line" << std::endl;
     }
-    ++relay_servers[bestIndex].second;
+    ++relay_servers[bestIndex]->second;
     std::cout << "Print best relay" << std::endl;
-    std::cout << "Best relay is index " << bestIndex << ": " << relay_servers[bestIndex].first.get()->get_ip() << std::endl;
-    return relay_servers[bestIndex].first;
+    std::cout << "Best relay is index " << bestIndex << ": " << relay_servers[bestIndex]->first.get()->get_ip() << std::endl;
+    return relay_servers[bestIndex]->first;
 }
 
 void pair_up(int i1, int i2) {
@@ -95,20 +95,20 @@ void listen_for_clients(int sd) {
     }
 }
 
-void update_count_from_relay(std::pair<Connection, int> &r) {
+void update_count_from_relay(std::pair<Connection, int> *r) {
     const int size = 1024;
     char response[size];
-    read(r.first.get()->get_sd(), response, size);
-    std::cout << "count for " << r.first.get()->get_address_string() <<
-        " " << r.second << " --> " << atoi(response) << std::endl;
-    r.second = atoi(response);
+    read(r->first.get()->get_sd(), response, size);
+    std::cout << "count for " << r->first.get()->get_address_string() <<
+        " " << r->second << " --> " << atoi(response) << std::endl;
+    r->second = atoi(response);
 }
 
 void poll_relays() {
     if (fork() != 0) return;
     while (true) {
         for (auto r : relay_servers) {
-            send_to_connection(r.first, "1");
+            send_to_connection(r->first, "1");
             update_count_from_relay(r);
         }
     }
@@ -118,7 +118,8 @@ void listen_for_relays(int sd) {
     if (fork() != 0) return;
     while (1) {
         std::cout << "Number of relays: " << relay_servers.size() << std::endl;
-        relay_servers.push_back({accept_connection(sd), 0});
+        std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
+        relay_servers.push_back(p);
     }
 }
 
