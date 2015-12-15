@@ -54,10 +54,12 @@ Connection get_min_relay() {
     int bestIndex=0;
     int lowestCount=0;
     for (unsigned int i=0; i<relay_servers.size(); ++i) {
+        std::cout << "Crash next line" << std::endl;
         if (relay_servers[i].second < lowestCount) {
             lowestCount = relay_servers[i].second;
             bestIndex=i;
         }
+        std::cout << "Didnt crash previous line" << std::endl;
     }
     ++relay_servers[bestIndex].second;
     std::cout << "Print best relay" << std::endl;
