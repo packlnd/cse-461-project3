@@ -25,7 +25,7 @@ typedef std::vector<std::pair<Connection, int>*> RelayList;
 
 std::vector<Connection> clients;
 RelayList relay_servers;
-long pair_number = 0;
+int pair_number = 0;
 
 void handle_error(std::string msg) {
     std::cerr << msg << std::endl;
@@ -97,22 +97,21 @@ void listen_for_clients(int sd) {
 }
 
 void update_count_from_relay(std::pair<Connection, int> *r) {
-    const int size = 1024;
-    char response[size];
+    const int size = 4;
+    char response[4];
+    memset(response, 0, size);
     read(r->first.get()->get_sd(), response, size);
-    std::cout << "Count for " << r->first.get()->get_address_string() <<
-        " " << r->second << " --> " << atoi(response) << std::endl;
+    std::cout << r->first.get()->get_address_string() <<
+        "\t\t\t" << *(int *)response << std::endl;
     r->second = atoi(response);
 }
 
 void poll_relays() {
-    //if (fork() != 0) return;
-    //while (true) {
+    std::cout << "Server\t\t\tNumber of clients" << std::endl;
     for (auto r : relay_servers) {
         send_to_connection(r->first, "1");
         update_count_from_relay(r);
     }
-    //}
 }
 
 void listen_for_relays(int sd) {
@@ -142,7 +141,7 @@ int main(int argc, char **argv) {
     listen_for_clients(create_socket(1235));
     while (true) {
         poll_relays();
-	sleep(30);
+        sleep(30);
     }
     return 0;
 }
