@@ -62,7 +62,6 @@ public class Client extends JLabel {
 						os.write(bytes.length);
 						os.write('\n');
 						os.write(bytes);
-						os.write('\n');
 						
 						Thread.sleep(500);
 					} catch (Exception e) {
@@ -78,8 +77,11 @@ public class Client extends JLabel {
 			public void run() {
 				while (true) {
 					try {
-						BufferedReader bsr = new BufferedReader(new InputStreamReader(relay.getInputStream()));
-						System.out.println(bsr.readLine());
+						DataInputStream dis = new DataInputStream(relay.getInputStream());
+						int len = dis.readInt();
+						dis.readByte();
+					    ByteBuffer bbuf = ByteBuffer.allocate(len);
+					    
 						/*InputStream in = new ByteArrayInputStream(dp.getData());
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));*/
