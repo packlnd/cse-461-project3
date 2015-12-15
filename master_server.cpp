@@ -137,8 +137,8 @@ int create_socket(int port_no) {
 }
 
 int main(int argc, char **argv) {
+    listen_for_relays(create_socket(1234));
     while (true) {
-        listen_for_relays(create_socket(1234));
         poll_relays();
         listen_for_clients(create_socket(1235));
     }
