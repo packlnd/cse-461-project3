@@ -24,7 +24,7 @@ class ConnectionInfo {
         std::string get_ip() const;
         int get_port() const;
         std::string get_address_string() const;
-    private:
+     private:
         int sd;
         struct sockaddr_in addr;
         socklen_t addr_len;
