@@ -88,11 +88,11 @@ void naive_matching_algorithm() {
 }
 
 void listen_for_clients(int sd) {
-    while (1) {
+    //while (1) {
         std::cout << "Number of clients: " << clients.size() << std::endl;
         clients.push_back(accept_connection(sd));
         if (can_match()) naive_matching_algorithm();
-    }
+    //}
 }
 
 void update_count_from_relay(std::pair<Connection, int> *r) {
@@ -105,22 +105,22 @@ void update_count_from_relay(std::pair<Connection, int> *r) {
 }
 
 void poll_relays() {
-    if (fork() != 0) return;
-    while (true) {
+    //if (fork() != 0) return;
+    //while (true) {
         for (auto r : relay_servers) {
             send_to_connection(r->first, "1");
             update_count_from_relay(r);
         }
-    }
+    //}
 }
 
 void listen_for_relays(int sd) {
-    if (fork() != 0) return;
-    while (1) {
+    //if (fork() != 0) return;
+    //while (1) {
         std::cout << "Number of relays: " << relay_servers.size() << std::endl;
         std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
         relay_servers.push_back(p);
-    }
+    //}
 }
 
 int create_socket(int port_no) {
@@ -137,8 +137,10 @@ int create_socket(int port_no) {
 }
 
 int main(int argc, char **argv) {
-    listen_for_relays(create_socket(1234));
-    poll_relays();
-    listen_for_clients(create_socket(1235));
+    while (true) {
+        listen_for_relays(create_socket(1234));
+        poll_relays();
+        listen_for_clients(create_socket(1235));
+    }
     return 0;
 }
