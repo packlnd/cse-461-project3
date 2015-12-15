@@ -60,7 +60,8 @@ Connection get_min_relay() {
         }
     }
     ++relay_servers[bestIndex].second;
-    std::cout << "Best relay is index " << bestIndex << ": " << relay_servers[bestIndex].first.get()->get_ip();
+    std::cout << "Print best relay" << std::endl;
+    std::cout << "Best relay is index " << bestIndex << ": " << relay_servers[bestIndex].first.get()->get_ip() << std::endl;
     return relay_servers[bestIndex].first;
 }
 
