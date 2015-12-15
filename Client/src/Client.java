@@ -41,8 +41,10 @@ public class Client {
 		Socket socket = null;
 		try {
 			socket = new Socket(s[0], 1236);
-			BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-			bw.write(s[1]);
+			int token = Integer.parseInt(s[1]);
+			System.out.println("Token is: " + token);
+			OutputStream os = socket.getOutputStream();
+			os.write(ByteBuffer.allocate(4).putInt(token).array());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -80,6 +82,7 @@ public class Client {
 						DataInputStream dis = new DataInputStream(relay.getInputStream());
 						int len = dis.readInt();
 						dis.readByte();
+						System.out.println(len);
 					    ByteBuffer bbuf = ByteBuffer.allocate(len);
 					    for (int i=0; i<len; ++i)
 					    	bbuf.put(dis.readByte());
