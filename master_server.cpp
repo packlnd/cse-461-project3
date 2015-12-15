@@ -141,6 +141,7 @@ int main(int argc, char **argv) {
     while (true) {
         poll_relays();
         listen_for_clients(create_socket(1235));
+        sleep(30);
     }
     return 0;
 }

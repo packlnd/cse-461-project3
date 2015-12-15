@@ -29,6 +29,7 @@ public class Display extends JFrame{
 	
 	 public static void main(String[] args) {
 		 Display d = new Display("Webcam", new Client());
+		 d.pack();
 		 d.setVisible(true);
 	 }
 }

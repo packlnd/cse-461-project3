@@ -37,7 +37,7 @@ public class Client extends JLabel {
 	}
 
 	private Socket setupConnectionWithRelay(String response) {
-		String[] s = response.split("$");
+		String[] s = response.split(" ");
 		Socket socket = null;
 		try {
 			socket = new Socket(s[0], 1236);
