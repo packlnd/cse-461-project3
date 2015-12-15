@@ -100,19 +100,17 @@ void update_count_from_relay(std::pair<Connection, int> *r) {
     const int size = 1024;
     char response[size];
     read(r->first.get()->get_sd(), response, size);
-    std::cout << "Count for " << r->first.get()->get_address_string() <<
-        " " << r->second << " --> " << atoi(response) << std::endl;
+    std::cout << r->first.get()->get_address_string() <<
+        "\t\t" << atoi(response) << std::endl;
     r->second = atoi(response);
 }
 
 void poll_relays() {
-    //if (fork() != 0) return;
-    //while (true) {
+    std::cout << "Server\t\tNumber of clients" << std::endl;
     for (auto r : relay_servers) {
         send_to_connection(r->first, "1");
         update_count_from_relay(r);
     }
-    //}
 }
 
 void listen_for_relays(int sd) {
