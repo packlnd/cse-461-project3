@@ -73,7 +73,7 @@ void pair_up(int i1, int i2) {
     Connection c1 = clients[i1];
     Connection c2 = clients[i2];
     Connection c = get_min_relay();
-    std::string msg = c.get()->get_ip() + "$" + std::to_string(pair_number++);
+    std::string msg = c.get()->get_ip() + " " + std::to_string(pair_number++);
     std::cout << c1.get()->get_address_string() << " <-- " << msg << " --> " <<
         c2.get()->get_address_string() << std::endl;
     send_to_connection(c1, msg);
@@ -88,18 +88,19 @@ void naive_matching_algorithm() {
 }
 
 void listen_for_clients(int sd) {
-    //while (1) {
+    if (fork() != 0) return;
+    while (true) {
         std::cout << "Number of clients: " << clients.size() << std::endl;
         clients.push_back(accept_connection(sd));
         if (can_match()) naive_matching_algorithm();
-    //}
+    }
 }
 
 void update_count_from_relay(std::pair<Connection, int> *r) {
     const int size = 1024;
     char response[size];
     read(r->first.get()->get_sd(), response, size);
-    std::cout << "count for " << r->first.get()->get_address_string() <<
+    std::cout << "Count for " << r->first.get()->get_address_string() <<
         " " << r->second << " --> " << atoi(response) << std::endl;
     r->second = atoi(response);
 }
@@ -107,19 +108,19 @@ void update_count_from_relay(std::pair<Connection, int> *r) {
 void poll_relays() {
     //if (fork() != 0) return;
     //while (true) {
-        for (auto r : relay_servers) {
-            send_to_connection(r->first, "1");
-            update_count_from_relay(r);
-        }
+    for (auto r : relay_servers) {
+        send_to_connection(r->first, "1");
+        update_count_from_relay(r);
+    }
     //}
 }
 
 void listen_for_relays(int sd) {
     //if (fork() != 0) return;
     //while (1) {
-        std::cout << "Number of relays: " << relay_servers.size() << std::endl;
-        std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
-        relay_servers.push_back(p);
+    std::cout << "Number of relays: " << relay_servers.size() << std::endl;
+    std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
+    relay_servers.push_back(p);
     //}
 }
 
@@ -138,9 +139,9 @@ int create_socket(int port_no) {
 
 int main(int argc, char **argv) {
     listen_for_relays(create_socket(1234));
+    listen_for_clients(create_socket(1235));
     while (true) {
         poll_relays();
-        listen_for_clients(create_socket(1235));
         sleep(30);
     }
     return 0;

@@ -16,7 +16,7 @@ import com.github.sarxos.webcam.Webcam;
 import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 
-public class Client extends JLabel {
+public class Client {
 
 	private Webcam webcam;
 	private JLabel remoteCam;
@@ -26,7 +26,6 @@ public class Client extends JLabel {
 	}
 
 	public Client() {
-		super();
 		initializeWebcam();
 		buildGUI();
 		String response = communicateWithMasterServer();
@@ -110,9 +109,14 @@ public class Client extends JLabel {
 		remoteCam.setMaximumSize(new Dimension(250, 500));
 		remoteCam.setBackground(Color.BLACK);
 
-		this.setPreferredSize(new Dimension(500, 500));
-		this.add(panel);
-		this.add(remoteCam);
+		JFrame window = new JFrame("Test webcam panel");
+		window.setPreferredSize(new Dimension(500, 500));
+		window.add(panel);
+		window.add(remoteCam);
+		window.setResizable(true);
+		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		window.pack();
+		window.setVisible(true);
 	}
 	
 	private boolean cameraAvailable() {
