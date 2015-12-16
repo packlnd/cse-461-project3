@@ -48,11 +48,11 @@ public class Client {
 		boolean cam = cameraAvailable();
 		buildGUI(cam);
 		endThread = false;
-		String response = communicateWithMasterServer();
+		/*String response = communicateWithMasterServer();
 		Socket relay = setupConnectionWithRelay(response);
 		if (cam)
 			sendWebcamFrames(relay);
-		getWebcamFrames(relay);
+		getWebcamFrames(relay);*/
 	}
 
 	private Socket setupConnectionWithRelay(String response) {
@@ -169,6 +169,7 @@ public class Client {
 				}
 				endThread = false;
 				String response = communicateWithMasterServer();
+				if (response == null) return;
 				Socket relay = setupConnectionWithRelay(response);
 				if (cam)
 					sendWebcamFrames(relay);
@@ -197,7 +198,7 @@ public class Client {
 			serverSocket.close();
 		} catch (ConnectException ce) {
 			JOptionPane.showMessageDialog(null, "Cannot connect to " + host + " on " + port);
-			System.exit(0);
+			return null;
 		} catch (IOException ie) {
 			ie.printStackTrace();
 		}
