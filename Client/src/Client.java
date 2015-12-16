@@ -62,7 +62,7 @@ public class Client {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
-						System.out.println(bytes.length);
+						System.out.println("Sent: " + bytes.length);
 						os.writeInt(bytes.length);
 						os.write(bytes);
 						
@@ -78,22 +78,29 @@ public class Client {
 	private void getWebcamFrames(Socket relay) {
 		Thread t = new Thread() {
 			public void run() {
-				while (true) {
-					try {
-						DataInputStream dis = new DataInputStream(relay.getInputStream());
+				DataInputStream dis;
+				try {
+					dis = new DataInputStream(relay.getInputStream());
+					while (true) {
 						int len = dis.readInt();
-						System.out.println(len);
-					    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
-					    bbuf.order(ByteOrder.BIG_ENDIAN);
-					    for (int i=0; i<len; ++i)
-					    	bbuf.put(dis.readByte());*/
+						System.out.println("Received: " + len);
+						    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
+						    bbuf.order(ByteOrder.BIG_ENDIAN);
+						    for (int i=0; i<len; ++i)
+						    	bbuf.put(dis.readByte());*/
 						byte[] buf = new byte[len];
-						dis.read(buf, 0, len);
+						int read = 0;
+						while (read < len) {
+							read += dis.read(buf, read, len - read);
+						}
+						System.out.println("Read: " + read);
 						InputStream in = new ByteArrayInputStream(buf);
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));
-					} catch (Exception e) {
 					}
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
 				}
 			}
 		};
