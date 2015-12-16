@@ -43,7 +43,6 @@ public class Client {
 		try {
 			socket = new Socket(s[0], 11236);
 			int token = Integer.parseInt(s[1]);
-			System.out.println("Token is: " + token);
 			OutputStream os = socket.getOutputStream();
 			os.write(ByteBuffer.allocate(4).putInt(token).array());
 		} catch (Exception e) {
@@ -62,11 +61,10 @@ public class Client {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
-						System.out.println("Sent: " + bytes.length);
 						os.writeInt(bytes.length);
 						os.write(bytes);
 						
-						Thread.sleep(500);
+						Thread.sleep(1000/28);
 					} catch (Exception e) {
 					}
 				}
@@ -83,17 +81,11 @@ public class Client {
 					dis = new DataInputStream(relay.getInputStream());
 					while (true) {
 						int len = dis.readInt();
-						System.out.println("Received: " + len);
-						    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
-						    bbuf.order(ByteOrder.BIG_ENDIAN);
-						    for (int i=0; i<len; ++i)
-						    	bbuf.put(dis.readByte());*/
 						byte[] buf = new byte[len];
 						int read = 0;
 						while (read < len) {
 							read += dis.read(buf, read, len - read);
 						}
-						System.out.println("Read: " + read);
 						InputStream in = new ByteArrayInputStream(buf);
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));
