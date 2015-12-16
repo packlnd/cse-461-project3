@@ -1,13 +1,19 @@
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractButton;
@@ -19,6 +25,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.UIManager;
 
 import com.github.sarxos.webcam.Webcam;
@@ -32,6 +39,9 @@ public class Client {
 	private JLabel remoteCam;
 	private boolean endThread;
 	private boolean cam;
+	private ArrayList<String> chat;
+	private JLabel chatBox;
+	private int chatsToRead;
 	
 	public static void main(String[] args) {
 		try {
@@ -50,24 +60,39 @@ public class Client {
 		} catch (IOException e) {}
 		initializeWebcam();
 		cam = cameraAvailable();
+		chat = new ArrayList<String>();
 		buildGUI();
 		endThread = false;
-		
+		chatsToRead = 0;
 	}
 
 	private Socket setupConnectionWithRelay(String response) {
-		String[] s = response.split(" ");
 		Socket socket = null;
 		try {
+			String[] s = response.split(" ");
 			socket = new Socket(s[0], 11236);
 			int token = Integer.parseInt(s[1]);
 			System.out.println("Token is: " + token);
 			OutputStream os = socket.getOutputStream();
 			os.write(ByteBuffer.allocate(4).putInt(token).array());
 		} catch (Exception e) {
-			e.printStackTrace();
 		}
 		return socket;
+	}
+	
+	private void updateChat() {
+		int max = 0;
+		if (chat.size() > 10) {
+			max = chat.size() - 10;
+		}
+		String text = "<html><body>";
+		for (int i = max; i < chat.size(); i++) {
+			text += chat.get(i) + "<br>";
+		}
+		for (int i = 0; i < 10 - chat.size() + max; i++) {
+			text += "<br>";
+		}
+		chatBox.setText(text + "</body></html>");
 	}
 	
 	private void sendWebcamFrames(Socket relay) {
@@ -88,6 +113,15 @@ public class Client {
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
+						os.writeInt(bytes.length);
+						os.write(bytes);
+						
+						baos = new ByteArrayOutputStream();
+						while (chatsToRead > 0) {
+							baos.write((chat.get(chat.size() - chatsToRead) + "\n").getBytes());
+							chatsToRead--;
+						}
+						bytes = baos.toByteArray();
 						os.writeInt(bytes.length);
 						os.write(bytes);
 						
@@ -123,6 +157,17 @@ public class Client {
 						InputStream in = new ByteArrayInputStream(buf);
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));
+						
+						len = dis.readInt();
+						if (len > 0) {
+							buf = new byte[len];
+							read = 0;
+							while (read < len) {
+								read += dis.read(buf, read, len - read);
+							}
+							chat.add(new String(buf, "UTF-8"));
+							updateChat();
+						}
 					}
 				} catch (IOException e1) {
 				}
@@ -149,6 +194,8 @@ public class Client {
 			panel = new JLabel();
 			((JLabel) panel).setIcon(new ImageIcon(noWebcam));
 		}
+		panel.setMaximumSize(panel.getMaximumSize());
+		panel.setMinimumSize(panel.getMinimumSize());
 		/*if (cameraAvailable())
 			remoteCam = new JLabel(new ImageIcon(webcam.getImage())) {
 				@Override
@@ -170,11 +217,16 @@ public class Client {
 				return new Dimension(480, 360);
 			}
 		};
+		remoteCam.setMaximumSize(remoteCam.getMaximumSize());
+		remoteCam.setMinimumSize(remoteCam.getMinimumSize());
 		
 		JFrame window = new JFrame("UW Chat Roulette");
-		window.setPreferredSize(new Dimension(965, 400));
+		window.setPreferredSize(new Dimension(965, 585));
 		window.add(remoteCam, BorderLayout.EAST);
 		window.add(panel, BorderLayout.WEST);
+		
+		JTextField name = new JTextField("Name", 20);
+		name.setMinimumSize(name.getPreferredSize());
 		JButton button = new JButton("New Connection");
 		button.addActionListener(new ActionListener() {
 			@Override
@@ -185,6 +237,9 @@ public class Client {
 				} catch (InterruptedException e1) {
 				}
 				endThread = false;
+				chat = new ArrayList<String>();
+				chatsToRead = 0;
+				updateChat();
 				remoteCam.setIcon(new ImageIcon(noConnection));
 				String response = communicateWithMasterServer();
 				Socket relay = setupConnectionWithRelay(response);
@@ -192,7 +247,56 @@ public class Client {
 				getWebcamFrames(relay);
 			}
 		});
-		window.add(button, BorderLayout.SOUTH);
+		chatBox = new JLabel() {
+			@Override
+			public Dimension getPreferredSize() {
+				return new Dimension(380, 160);
+			}
+			
+			@Override
+			public Dimension getMinimumSize() {
+				return new Dimension(380, 160);
+			}
+		};
+		updateChat();
+		JTextField chatField = new JTextField("", 50);
+		chatField.setMinimumSize(chatField.getPreferredSize());
+		chatField.addKeyListener(new KeyListener() {
+			@Override
+			public void keyPressed(KeyEvent e) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					chat.add(name.getText() + ": " + chatField.getText());
+					chatField.setText("");
+					chatsToRead++;
+					updateChat();
+				}
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {}
+
+			@Override
+			public void keyTyped(KeyEvent e) {}
+		});
+		JPanel otherStuff = new JPanel() {
+			@Override
+			public Dimension getPreferredSize() {
+				return new Dimension(480, 225);
+			}
+		};
+		otherStuff.setLayout(new GridBagLayout());
+		GridBagConstraints c = new GridBagConstraints();
+		c.gridx = 0;
+		c.gridy = 0;
+		otherStuff.add(name, c);
+		c.gridy = 1;
+		otherStuff.add(chatBox, c);
+		c.gridy = 2;
+		otherStuff.add(chatField, c);
+		c.gridy = 3;
+		otherStuff.add(button, c);
+		
+		window.add(otherStuff, BorderLayout.SOUTH);
 		window.setResizable(false);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.pack();
