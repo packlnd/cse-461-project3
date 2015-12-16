@@ -34,6 +34,10 @@ std::string ConnectionInfo::get_ip() const {
     return s;
 }
 
+uint32_t ConnectionInfo::get_bip() const {
+  return htonl(inet_addr(inet_ntoa(addr.sin_addr)));
+}
+
 int ConnectionInfo::get_port() const {
     return ntohs(addr.sin_port);
 }

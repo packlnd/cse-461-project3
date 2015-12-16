@@ -21,6 +21,9 @@
 
 #include "./ConnectionInfo.hpp"
 
+uint32_t uw_ips[10] = {2161115136, 1602224128, 2391539712, 3325050880, 3450822656, 1163624448, 2918875136, 1823703040, 3427076096, 2887516160};
+uint32_t masks[5] = {4294901760, 4294934528, 4294950912, 4294959104, 4294965248};
+
 typedef std::shared_ptr<ConnectionInfo> Connection;
 typedef std::vector<std::pair<Connection, int>*> RelayList;
 
@@ -33,10 +36,34 @@ void handle_error(std::string msg) {
     exit(1);
 }
 
-Connection accept_connection(int sd) {
+bool valid_uw_ip(Connection c) {
+  bool valid = false;
+  uint32_t ip = c->get_bip();
+  std::cout<<c->get_ip()<<" --> "<<ip<<std::endl;
+  for (auto uw_ip : uw_ips) {
+    for (auto mask : masks) {
+      if ((ip & mask) == uw_ip) {
+	valid = true;
+	std::cout<<"found matching UW ip"<<std::endl;
+      }
+    }
+  }
+  if (!valid) {
+    std::cout<<"Client not from UW"<<std::endl;
+  }
+  return valid;
+}
+
+Connection accept_connection(int sd, bool client) {
     Connection c(new ConnectionInfo());
     int c_sd = accept(sd, c->address(), c->address_length());
     c->set_sd(c_sd);
+    if (client) {
+      if (valid_uw_ip(c)) {
+	std::cout<<"Client "<<c<<" accepted"<<std::endl;
+	clients.push_back(c);
+      }
+    }
     return c;
 }
 
@@ -45,6 +72,7 @@ bool can_match() {
 }
 
 void send_to_connection(Connection c, std::string s) {
+    
     s.append("\n");
     const char *msg = s.c_str();
     int len = strlen(msg);
@@ -86,13 +114,14 @@ void naive_matching_algorithm() {
 void listen_for_clients(int sd) {
     while (true) {
         std::cout << "Number of clients: " << clients.size() << std::endl;
-        clients.push_back(accept_connection(sd));
+	accept_connection(sd, true);
         if (can_match()) naive_matching_algorithm();
     }
 }
 
 void update_count_from_relay(std::pair<Connection, int> *r) {
     int count = 13;
+    
     recv(r->first.get()->get_sd(), &count, sizeof count, 0);
     std::cout << "Server: " << r->first.get()->get_address_string() <<
         ". Number of active pairs: " << count << std::endl;
@@ -109,7 +138,7 @@ void poll_relays() {
 void listen_for_relays(int sd) {
     while (1) {
         std::cout << "Number of relays: " << relay_servers.size() << std::endl;
-        std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
+        std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd, false), 0);
         relay_servers.push_back(p);
     }
 }

@@ -22,6 +22,7 @@ class ConnectionInfo {
         void set_sd(int cd);
         int get_sd() const;
         std::string get_ip() const;
+        uint32_t get_bip() const;
         int get_port() const;
         std::string get_address_string() const;
      private:
