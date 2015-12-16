@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -40,7 +41,7 @@ public class Client {
 		String[] s = response.split(" ");
 		Socket socket = null;
 		try {
-			socket = new Socket(s[0], 1236);
+			socket = new Socket(s[0], 11236);
 			int token = Integer.parseInt(s[1]);
 			System.out.println("Token is: " + token);
 			OutputStream os = socket.getOutputStream();
@@ -56,12 +57,13 @@ public class Client {
 			public void run() {
 				while (true) {
 					try {
-						OutputStream os = relay.getOutputStream();
+						DataOutputStream os = new DataOutputStream(relay.getOutputStream());
 						BufferedImage img = webcam.getImage();
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
-						os.write(bytes.length);
+						System.out.println(bytes.length);
+						os.writeInt(bytes.length);
 						os.write('\n');
 						os.write(bytes);
 						
@@ -83,10 +85,13 @@ public class Client {
 						int len = dis.readInt();
 						dis.readByte();
 						System.out.println(len);
-					    ByteBuffer bbuf = ByteBuffer.allocate(len);
+					    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
+					    bbuf.order(ByteOrder.BIG_ENDIAN);
 					    for (int i=0; i<len; ++i)
-					    	bbuf.put(dis.readByte());
-						InputStream in = new ByteArrayInputStream(bbuf.array());
+					    	bbuf.put(dis.readByte());*/
+						byte[] buf = new byte[len];
+						dis.read(buf, 0, len);
+						InputStream in = new ByteArrayInputStream(buf);
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));
 					} catch (Exception e) {
@@ -130,7 +135,7 @@ public class Client {
 
 	private String communicateWithMasterServer() {
 		final String host = "attu1.cs.washington.edu";
-		final int port = 1235;
+		final int port = 11235;
 		String response = null;
 		try {
 			Socket serverSocket = new Socket(host, port);
