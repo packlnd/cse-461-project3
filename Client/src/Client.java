@@ -27,14 +27,13 @@ public class Client {
 	private Webcam webcam;
 	private JLabel remoteCam;
 	private boolean endThread;
-	
+
 	public static void main(String[] args) {
 		try {
-            // Set System L&F
-        UIManager.setLookAndFeel(
-            UIManager.getSystemLookAndFeelClassName());
-		} 
-		catch (Exception e) {}
+			// Set System L&F
+			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+		} catch (Exception e) {
+		}
 		new Client();
 	}
 
@@ -64,7 +63,7 @@ public class Client {
 		}
 		return socket;
 	}
-	
+
 	private void sendWebcamFrames(Socket relay) {
 		Thread t = new Thread() {
 			public void run() {
@@ -80,8 +79,8 @@ public class Client {
 						byte[] bytes = baos.toByteArray();
 						os.writeInt(bytes.length);
 						os.write(bytes);
-						
-						Thread.sleep(1000/28);
+
+						Thread.sleep(1000 / 28);
 					} catch (Exception e) {
 					}
 				}
@@ -101,10 +100,11 @@ public class Client {
 							break;
 						}
 						int len = dis.readInt();
-						    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
-						    bbuf.order(ByteOrder.BIG_ENDIAN);
-						    for (int i=0; i<len; ++i)
-						    	bbuf.put(dis.readByte());*/
+						/*
+						 * ByteBuffer bbuf = ByteBuffer.allocate(len);
+						 * bbuf.order(ByteOrder.BIG_ENDIAN); for (int i=0;
+						 * i<len; ++i) bbuf.put(dis.readByte());
+						 */
 						byte[] buf = new byte[len];
 						int read = 0;
 						while (read < len) {
@@ -175,7 +175,7 @@ public class Client {
 		window.pack();
 		window.setVisible(true);
 	}
-	
+
 	private boolean cameraAvailable() {
 		return !webcam.getLock().isLocked();
 	}
