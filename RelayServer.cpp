@@ -5,6 +5,7 @@
 #include <thread>
 #include <map>
 #include <mutex>
+#include <atomic>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -20,13 +21,16 @@
 
 #include "./ConnectionInfo.hpp"
 
-#define MASTER_PORT 1234
-#define CLIENT_PORT 1236
+#define MASTER_PORT 11234
+#define CLIENT_PORT 11236
 
 // TOKEN -> SOCKET FILE DESCRIPTORS
 std::map<int,std::vector<int>> client_pairs;
 
 std::mutex pairs_mutex;
+std::mutex cout_mutex;
+
+std::atomic<int> client_count;
 
 void handle_error(std::string msg) {
     std::cerr << msg << std::endl;
@@ -37,7 +41,7 @@ void handle_client(int client_sd) {
   struct pollfd fds[1];
   fds[0].fd = client_sd;
   fds[0].events = POLLIN;
-  char token_buf[4];
+  int token_buf;
   char buf[25000];
   int bytes_read;
   int token, partner;
@@ -47,29 +51,43 @@ void handle_client(int client_sd) {
 
   // get the token from client
   bytes_read = read(client_sd, &token_buf, sizeof(token_buf));
-  token = *((int*)token_buf);
-  std::cout << "Client "<<client_sd<<" with token "<<token<<std::endl;
-  //if (client_pairs.fine(token) != std::npos) {
+  //token = ntohl(*((int*)token_buf));
+  token = ntohl(token_buf);
+  
+  pairs_mutex.lock();
   client_pairs[token].push_back(client_sd);
-    //}
+  pairs_mutex.unlock();
 
   while (client_pairs[token].size() != 2) { }
-
-  for (auto it = client_pairs[token].begin(); it != client_pairs[token].end(); it++) {
+  
+  client_count++;
+  for (auto it = client_pairs[token].begin(); it != client_pairs[token].end(); it++)
     if (*it != client_sd) partner = *it;
-  }
+
+  cout_mutex.lock();
+  std::cout<<client_sd<<" matched with "<<partner<<" with token "<<token<<std::endl;
+  cout_mutex.unlock();
+  
   do {
-    std::cout<<"Waiting for message from client "<<client_sd<<std::endl;
+    // if the partner disconnects, end this session
+    if ( client_pairs[token].size() != 2) break;
+    
     bytes_read = read(client_sd, &buf, sizeof(buf));
     if (bytes_read > 0) {
-      std::cout<<"Read "<<bytes_read<<" bytes from client "<<client_sd<<std::endl;
+      // std::cout<<"Read "<<bytes_read<<" bytes from client "<<client_sd<<", size = "<<ntohl(size_buf)<<std::endl;
       // process bytes
-      std::cout<<"Writing "<<bytes_read<<" bytes to Client "<<partner<<std::endl;
+      // std::cout<<"Writing "<<bytes_read<<" bytes to Client "<<partner<<std::endl;
       // write to opposite end
-      write(partner, &buf, bytes_read);
+      write(partner, buf, bytes_read);
+      
     }
-  } while (poll(fds, 1, 10000) > 0 && bytes_read != 0);
+  } while (poll(fds, 1, 3000) > 0 && bytes_read != 0);
 
+  pairs_mutex.lock();
+  client_pairs[token].pop_back();
+  pairs_mutex.unlock();
+  
+  client_count--;
   close(client_sd);
   std::cout<<"Disconnecting from client socket "<<client_sd<<std::endl;
 }
@@ -103,10 +121,12 @@ void connect_to_master() {
   do {
     if (read(master_sd, &buf, sizeof(buf)) > 0) {
       // check for request value
-      std::cout << "Master requested traffic report. active pairs = " << client_pairs.size()<<std::endl;
-      char *response_buf[sizeof(int)];
-      *(int*)response_buf = client_pairs.size();
-      write(master_sd, response_buf, sizeof(response_buf));
+      cout_mutex.lock();
+      std::cout << "Master requested traffic report. active pairs = " <<client_count/2<<std::endl;
+      cout_mutex.unlock();
+      int count_buf;
+      count_buf = client_count/2;
+      write(master_sd, &count_buf, sizeof(count_buf));
     }
   } while (poll(fds, 1, 60000) > 0);
 
