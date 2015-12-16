@@ -1,27 +1,24 @@
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.ConnectException;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
 import javax.imageio.ImageIO;
+import javax.swing.AbstractButton;
+import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.UIManager;
 
 import com.github.sarxos.webcam.Webcam;
@@ -29,30 +26,33 @@ import com.github.sarxos.webcam.WebcamPanel;
 import com.github.sarxos.webcam.WebcamResolution;
 
 public class Client {
-
+	private BufferedImage noWebcam;
+	private BufferedImage noConnection;
 	private Webcam webcam;
 	private JLabel remoteCam;
 	private boolean endThread;
-
+	private boolean cam;
+	
 	public static void main(String[] args) {
 		try {
-			// Set System L&F
-			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e) {
-		}
+            // Set System L&F
+			UIManager.setLookAndFeel(
+					UIManager.getSystemLookAndFeelClassName());
+		} 
+		catch (Exception e) {}
 		new Client();
 	}
 
 	public Client() {
+		try {
+			noWebcam = ImageIO.read(new File("nowebcam.jpg"));
+			noConnection = ImageIO.read(new File("waiting.jpg"));
+		} catch (IOException e) {}
 		initializeWebcam();
-		boolean cam = cameraAvailable();
-		buildGUI(cam);
+		cam = cameraAvailable();
+		buildGUI();
 		endThread = false;
-		/*String response = communicateWithMasterServer();
-		Socket relay = setupConnectionWithRelay(response);
-		if (cam)
-			sendWebcamFrames(relay);
-		getWebcamFrames(relay);*/
+		
 	}
 
 	private Socket setupConnectionWithRelay(String response) {
@@ -69,7 +69,7 @@ public class Client {
 		}
 		return socket;
 	}
-
+	
 	private void sendWebcamFrames(Socket relay) {
 		Thread t = new Thread() {
 			public void run() {
@@ -79,14 +79,19 @@ public class Client {
 							break;
 						}
 						DataOutputStream os = new DataOutputStream(relay.getOutputStream());
-						BufferedImage img = webcam.getImage();
+						BufferedImage img = null;
+						if (cam) {
+							img = webcam.getImage();
+						} else {
+							img = noWebcam;
+						}
 						ByteArrayOutputStream baos = new ByteArrayOutputStream();
 						ImageIO.write(img, "jpg", baos);
 						byte[] bytes = baos.toByteArray();
 						os.writeInt(bytes.length);
 						os.write(bytes);
-
-						Thread.sleep(1000 / 28);
+						
+						Thread.sleep(1000/28);
 					} catch (Exception e) {
 					}
 				}
@@ -106,11 +111,10 @@ public class Client {
 							break;
 						}
 						int len = dis.readInt();
-						/*
-						 * ByteBuffer bbuf = ByteBuffer.allocate(len);
-						 * bbuf.order(ByteOrder.BIG_ENDIAN); for (int i=0;
-						 * i<len; ++i) bbuf.put(dis.readByte());
-						 */
+						    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
+						    bbuf.order(ByteOrder.BIG_ENDIAN);
+						    for (int i=0; i<len; ++i)
+						    	bbuf.put(dis.readByte());*/
 						byte[] buf = new byte[len];
 						int read = 0;
 						while (read < len) {
@@ -132,14 +136,20 @@ public class Client {
 		webcam.setViewSize(WebcamResolution.VGA.getSize());
 	}
 
-	private void buildGUI(boolean cam) {
-		WebcamPanel panel = new WebcamPanel(webcam, cam) {
-			@Override
-			public Dimension getPreferredSize() {
-				return new Dimension(480, 360);
-			}
-		};
-		if (cameraAvailable())
+	private void buildGUI() {
+		JComponent panel = null;
+		if (cam) {
+			panel = new WebcamPanel(webcam, cam) {
+				@Override
+				public Dimension getPreferredSize() {
+					return new Dimension(480, 360);
+				}
+			};
+		} else {
+			panel = new JLabel();
+			((JLabel) panel).setIcon(new ImageIcon(noWebcam));
+		}
+		/*if (cameraAvailable())
 			remoteCam = new JLabel(new ImageIcon(webcam.getImage())) {
 				@Override
 				public Dimension getPreferredSize() {
@@ -147,13 +157,20 @@ public class Client {
 				}
 			};
 		else
-			remoteCam = new JLabel(new ImageIcon()) {
+			remoteCam = new JLabel(new ImageIcon(noWebcam)) {
 				@Override
 				public Dimension getPreferredSize() {
 					return new Dimension(480, 360);
 				}
-			};
+			};*/
 
+		remoteCam = new JLabel(new ImageIcon(noConnection)) {
+			@Override
+			public Dimension getPreferredSize() {
+				return new Dimension(480, 360);
+			}
+		};
+		
 		JFrame window = new JFrame("UW Chat Roulette");
 		window.setPreferredSize(new Dimension(965, 400));
 		window.add(remoteCam, BorderLayout.EAST);
@@ -168,11 +185,10 @@ public class Client {
 				} catch (InterruptedException e1) {
 				}
 				endThread = false;
+				remoteCam.setIcon(new ImageIcon(noConnection));
 				String response = communicateWithMasterServer();
-				if (response == null) return;
 				Socket relay = setupConnectionWithRelay(response);
-				if (cam)
-					sendWebcamFrames(relay);
+				sendWebcamFrames(relay);
 				getWebcamFrames(relay);
 			}
 		});
@@ -182,7 +198,7 @@ public class Client {
 		window.pack();
 		window.setVisible(true);
 	}
-
+	
 	private boolean cameraAvailable() {
 		return !webcam.getLock().isLocked();
 	}
@@ -198,7 +214,7 @@ public class Client {
 			serverSocket.close();
 		} catch (ConnectException ce) {
 			JOptionPane.showMessageDialog(null, "Cannot connect to " + host + " on " + port);
-			return null;
+			System.exit(0);
 		} catch (IOException ie) {
 			ie.printStackTrace();
 		}
