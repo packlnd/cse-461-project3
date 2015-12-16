@@ -72,7 +72,6 @@ public class Client {
 			String[] s = response.split(" ");
 			socket = new Socket(s[0], 11236);
 			int token = Integer.parseInt(s[1]);
-			System.out.println("Token is: " + token);
 			OutputStream os = socket.getOutputStream();
 			os.write(ByteBuffer.allocate(4).putInt(token).array());
 		} catch (Exception e) {
@@ -145,10 +144,6 @@ public class Client {
 							break;
 						}
 						int len = dis.readInt();
-						    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
-						    bbuf.order(ByteOrder.BIG_ENDIAN);
-						    for (int i=0; i<len; ++i)
-						    	bbuf.put(dis.readByte());*/
 						byte[] buf = new byte[len];
 						int read = 0;
 						while (read < len) {
@@ -196,21 +191,6 @@ public class Client {
 		}
 		panel.setMaximumSize(panel.getMaximumSize());
 		panel.setMinimumSize(panel.getMinimumSize());
-		/*if (cameraAvailable())
-			remoteCam = new JLabel(new ImageIcon(webcam.getImage())) {
-				@Override
-				public Dimension getPreferredSize() {
-					return new Dimension(480, 360);
-				}
-			};
-		else
-			remoteCam = new JLabel(new ImageIcon(noWebcam)) {
-				@Override
-				public Dimension getPreferredSize() {
-					return new Dimension(480, 360);
-				}
-			};*/
-
 		remoteCam = new JLabel(new ImageIcon(noConnection)) {
 			@Override
 			public Dimension getPreferredSize() {
