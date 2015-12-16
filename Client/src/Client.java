@@ -82,15 +82,18 @@ public class Client {
 				while (true) {
 					try {
 						DataInputStream dis = new DataInputStream(relay.getInputStream());
-						int len = dis.readInt();
-						dis.readByte();
+						ByteBuffer bbuf = ByteBuffer.allocate(4);
+					    bbuf.order(ByteOrder.LITTLE_ENDIAN);
+					    bbuf.putInt(dis.readInt());
+					    DataInputStream lenStr = new DataInputStream(new ByteArrayInputStream(bbuf.array()));
+						int len = lenStr.readInt();
 						System.out.println(len);
 					    /*ByteBuffer bbuf = ByteBuffer.allocate(len);
 					    bbuf.order(ByteOrder.BIG_ENDIAN);
 					    for (int i=0; i<len; ++i)
 					    	bbuf.put(dis.readByte());*/
 						byte[] buf = new byte[len];
-						dis.read(buf, 0, len);
+						dis.read(buf, 1, len);
 						InputStream in = new ByteArrayInputStream(buf);
 						BufferedImage img = ImageIO.read(in);
 						remoteCam.setIcon(new ImageIcon(img));
