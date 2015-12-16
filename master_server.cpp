@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <queue>
+#include <thread>
 
 #include <stdlib.h>
 #include <unistd.h>
@@ -83,7 +84,6 @@ void naive_matching_algorithm() {
 }
 
 void listen_for_clients(int sd) {
-    if (fork() != 0) return;
     while (true) {
         std::cout << "Number of clients: " << clients.size() << std::endl;
         clients.push_back(accept_connection(sd));
@@ -107,7 +107,6 @@ void poll_relays() {
 }
 
 void listen_for_relays(int sd) {
-    if (fork() != 0) return;
     while (1) {
         std::cout << "Number of relays: " << relay_servers.size() << std::endl;
         std::pair<Connection, int> *p = new std::pair<Connection, int>(accept_connection(sd), 0);
@@ -129,8 +128,10 @@ int create_socket(int port_no) {
 }
 
 int main(int argc, char **argv) {
-    listen_for_relays(create_socket(11234));
-    listen_for_clients(create_socket(11235));
+    std::thread relay_thr(listen_for_relays, create_socket(11234));
+    relay_thr.detach();
+    std::thread client_thr(listen_for_clients, create_socket(11235));
+    client_thr.detach();
     while (true) {
         poll_relays();
         sleep(30);
